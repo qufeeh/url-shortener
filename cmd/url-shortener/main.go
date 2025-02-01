@@ -3,11 +3,13 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	_ "github.com/jackc/pgx/v4/stdlib" // Импортируйте драйвер
+	_ "github.com/jackc/pgx/v4/stdlib" // Драйвер PostgreSQL
 	"log"
 	"log/slog"
 	"os"
 	"url-shortener/internal/config"
+	"url-shortener/internal/lib/logger/sl"
+	"url-shortener/internal/storage/postgres" // Пакет для работы с PostgreSQL
 )
 
 const (
@@ -39,9 +41,11 @@ func main() {
 		log.Fatalf("failed to ping database: %v", err)
 	}
 
-	// TODO: init logger: slog
-
-	// TODO: init storage: postgres
+	storage, err := postgres.New(db)
+	if err != nil {
+		logger.Error("failed to init storage", sl.Err(err))
+		os.Exit(1)
+	}
 
 	// TODO: init router: chi, "chi render"
 
