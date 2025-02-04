@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func NewRandomString(size int) string {
+func NewRandomStringg(size int) string {
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	chars := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ" +

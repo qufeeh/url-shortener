@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"url-shortener/internal/config"
+	"url-shortener/internal/http-server/handlers/redirect"
 	"url-shortener/internal/http-server/handlers/url/save"
 	mwLogger "url-shortener/internal/http-server/middleware/logger"
 	"url-shortener/internal/lib/logger/sl"
@@ -28,7 +29,10 @@ func main() {
 
 	logger := setupLogger(cfg.Env)
 
-	logger.Info("starting url-shortener", slog.String("env", cfg.Env))
+	logger.Info(
+		"starting url-shortener",
+		slog.String("env", cfg.Env),
+	)
 	logger.Debug("debug messages are enabled")
 
 	// Инициализация подключения к PostgreSQL
@@ -62,7 +66,15 @@ func main() {
 	router.Use(middleware.Recoverer) // если panic внутри хендлера, восстанавливаем панику
 	router.Use(middleware.URLFormat) // красивые url'ы при подключении к роутеру
 
-	router.Post("/url", save.New(logger, storage))
+	router.Route("/url", func(r chi.Router) {
+		r.Use(middleware.BasicAuth("url-shortener", map[string]string{
+			cfg.HTTPServer.User: cfg.HTTPServer.Password,
+		}))
+
+		r.Post("/", save.New(logger, storage))
+	})
+
+	router.Get("/{alias}", redirect.New(logger, storage))
 
 	logger.Info("starting server", slog.String("address", cfg.Address))
 

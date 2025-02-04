@@ -2,13 +2,14 @@ package response
 
 import (
 	"fmt"
-	"github.com/go-playground/validator/v10"
 	"strings"
+
+	"github.com/go-playground/validator/v10"
 )
 
 type Response struct {
 	Status string `json:"status"`
-	Error  string `json:"error"`
+	Error  string `json:"error,omitempty"`
 }
 
 const (
@@ -37,9 +38,9 @@ func ValidationError(errs validator.ValidationErrors) Response {
 		case "required":
 			errMsgs = append(errMsgs, fmt.Sprintf("field %s is a required field", err.Field()))
 		case "url":
-			errMsgs = append(errMsgs, fmt.Sprintf("field %s is not a valid URL field", err.Field()))
+			errMsgs = append(errMsgs, fmt.Sprintf("field %s is not a valid URL", err.Field()))
 		default:
-			errMsgs = append(errMsgs, fmt.Sprintf("field %s is not a valid field", err.Field()))
+			errMsgs = append(errMsgs, fmt.Sprintf("field %s is not valid", err.Field()))
 		}
 	}
 
