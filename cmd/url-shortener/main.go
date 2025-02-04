@@ -3,11 +3,16 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	_ "github.com/jackc/pgx/v4/stdlib" // Драйвер PostgreSQL
+	"golang.org/x/exp/slog"
 	"log"
-	"log/slog"
+	"net/http"
 	"os"
 	"url-shortener/internal/config"
+	"url-shortener/internal/http-server/handlers/url/save"
+	mwLogger "url-shortener/internal/http-server/middleware/logger"
 	"url-shortener/internal/lib/logger/sl"
 	"url-shortener/internal/storage/postgres" // Пакет для работы с PostgreSQL
 )
@@ -47,9 +52,33 @@ func main() {
 		os.Exit(1)
 	}
 
-	// TODO: init router: chi, "chi render"
+	_ = storage
 
-	// TODO: run server
+	router := chi.NewRouter()
+
+	router.Use(middleware.RequestID)
+	router.Use(middleware.Logger)
+	router.Use(mwLogger.New(logger))
+	router.Use(middleware.Recoverer) // если panic внутри хендлера, восстанавливаем панику
+	router.Use(middleware.URLFormat) // красивые url'ы при подключении к роутеру
+
+	router.Post("/url", save.New(logger, storage))
+
+	logger.Info("starting server", slog.String("address", cfg.Address))
+
+	srv := &http.Server{
+		Addr:         cfg.Address,
+		Handler:      router,
+		ReadTimeout:  cfg.HTTPServer.Timeout,
+		WriteTimeout: cfg.HTTPServer.Timeout,
+		IdleTimeout:  cfg.HTTPServer.IdleTimeout,
+	}
+
+	if err := srv.ListenAndServe(); err != nil {
+		logger.Error("failed to start server")
+	}
+
+	logger.Error("server stopped")
 }
 
 func setupLogger(env string) *slog.Logger {
